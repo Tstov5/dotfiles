@@ -1,5 +1,6 @@
-# --- Compositor ---
+# --- Compositor / Display Manager ---
 niri
+ly
 
 # --- Terminal / launcher / lock / file manager---
 kitty
