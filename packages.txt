@@ -1,0 +1,34 @@
+# --- Compositor ---
+niri
+
+# --- Terminal / launcher / lock / file manager---
+kitty
+fuzzel
+gtklock
+thunar
+
+# --- Wayland utilities (spawned at startup in niri/config.kdl) ---
+swaybg
+wl-clipboard
+cliphist
+
+# --- Audio / media / brightness (niri keybinds, audio-switcher.sh) ---
+pipewire
+pipewire-pulse
+pipewire-alsa
+wireplumber
+playerctl
+brightnessctl
+
+# --- Network & Bluetooth (wayle bar modules, bluetooth-toggle.sh) ---
+networkmanager
+bluez
+bluez-utils
+
+# --- Font (used by kitty, fuzzel, wayle, wlogout) ---
+ttf-jetbrains-mono-nerd
+
+# --- AUR (install with yay, not pacman) ---
+wayle
+wlogout
+zen-browser-bin
