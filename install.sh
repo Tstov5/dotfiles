@@ -7,7 +7,7 @@
 #   3. Installs every package listed in packages.txt
 #
 # Packages are installed with yay, which resolves official-repo packages
-# through pacman and builds the AUR-only ones (wayle, wlogout,
+# through pacman and handles the AUR ones (wayle-bin, wlogout,
 # zen-browser-bin) automatically.
 #
 # Usage: ./install.sh

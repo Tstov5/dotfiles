@@ -35,6 +35,9 @@ libsecret
 python-keyring
 
 # --- AUR (install with yay, not pacman) ---
-wayle
+# wayle-bin is the prebuilt binary. The source package (wayle) compiles a large
+# Rust workspace and fails on fresh systems where rustup has no toolchain
+# installed (RUSTUP_TOOLCHAIN=stable -> "toolchain 'stable' is not installed").
+wayle-bin
 wlogout
 zen-browser-bin
