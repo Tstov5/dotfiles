@@ -1,0 +1,33 @@
+* {
+    background-image: none;
+    box-shadow: none;
+}
+
+window {
+    background-color: rgba(0, 0, 0, 0.9);
+}
+
+button {
+    font-family: "JetBrainsMono Nerd Font", monospace;
+    font-size: 16px;
+    border-radius: 12px;
+    border-color: #ff1f1f;
+    text-decoration-color: #f2f2f2;
+    color: #f2f2f2;
+    background-color: #0a0a0a;
+    border-style: solid;
+    border-width: 2px;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 25%;
+    padding: 12px;
+}
+
+button:focus,
+button:active,
+button:hover {
+    color: #000000;
+    background-color: #ff1f1f;
+    border-color: #ff1f1f;
+    outline-style: none;
+}

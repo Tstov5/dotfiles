@@ -1,0 +1,30 @@
+[general]
+font-sans = "JetBrainsMono Nerd Font"
+font-mono = "JetBrainsMono Nerd Font"
+
+[bar]
+location = "top"
+
+[[bar.layout]]
+monitor = "*"
+left    = ["dashboard", "niri-workspaces"]
+center  = ["clock"]
+right   = ["volume", "network", "bluetooth", "battery", "systray", "notifications"]
+
+[modules.clock]
+format = "%a %d %b %H:%M:%S"
+
+[styling]
+theme-provider = "wayle"
+
+[styling.palette]
+bg         = "#000000"
+surface    = "#0a0a0a"
+elevated   = "#141414"
+fg         = "#f2f2f2"
+fg-muted   = "#8a8a8a"
+primary    = "#ff1f1f"
+red        = "#ff1f1f"
+yellow     = "#ffb31f"
+green      = "#1fd95f"
+blue       = "#1f86ff"
