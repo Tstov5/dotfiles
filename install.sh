@@ -9,6 +9,7 @@
 #   2. Installs yay (AUR helper) if it is not already installed
 #   3. Installs every package listed in packages.txt
 #   4. Enables the ly display manager (starts on next boot)
+#   5. Installs the Cline CLI via npm (after nodejs/npm above)
 #
 # Packages are installed with yay, which resolves official-repo packages
 # through pacman and handles the AUR ones (wayle-bin, wlogout,
@@ -157,3 +158,26 @@ fi
 #   sudo systemctl enable --now NetworkManager
 #   sudo systemctl enable --now bluetooth
 #   systemctl --user enable --now pipewire pipewire-pulse wireplumber
+
+# --- Step 6: Install the Cline CLI ---------------------------------------------
+# Cline is an AI coding agent that runs in your terminal. It is distributed as an
+# npm package and requires Node.js 20+ (the nodejs/npm packages installed in
+# Step 4 provide that). Official install guide:
+# https://docs.cline.bot/getting-started/installing-cline
+#     npm install -g cline
+#
+# On Arch, `npm install -g` writes into /usr, so sudo is required. This step is
+# safe to re-run: if `cline` is already on PATH we skip the install.
+
+if ! command -v npm &>/dev/null; then
+    error "npm not found - the nodejs/npm packages should have been installed in Step 4."
+fi
+
+if command -v cline &>/dev/null; then
+    info "cline is already installed at $(command -v cline) - skipping."
+else
+    info "Installing the Cline CLI (npm install -g cline)..."
+    sudo npm install -g cline
+    command -v cline &>/dev/null || error "cline installation failed."
+    info "cline installed at $(command -v cline)"
+fi

@@ -34,6 +34,10 @@ gnome-keyring
 libsecret
 python-keyring
 
+# --- Runtime: Node.js 20+ (required by the Cline CLI) ---
+nodejs
+npm
+
 # --- AUR (install with yay, not pacman) ---
 # wayle-bin is the prebuilt binary. The source package (wayle) compiles a large
 # Rust workspace and fails on fresh systems where rustup has no toolchain
