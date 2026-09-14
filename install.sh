@@ -106,15 +106,21 @@ info "All packages installed."
 
 # --- Step 5: Enable the ly display manager -----------------------------------
 # ly provides the TUI login screen and starts niri from the session files in
-# /usr/share/wayland-sessions. Only one display manager can be enabled at a
-# time (they all claim the display-manager.service alias), so enabling ly
-# fails if another display manager (gdm, sddm, ...) is already enabled.
+# /usr/share/wayland-sessions. The ly package ships a template service
+# (ly@.service) that must be started on a specific TTY — the conventional
+# choice is TTY2, leaving TTY1 for a manual getty/console login.
+#
+# Only one display manager can be enabled at a time (they all claim the
+# display-manager.service alias), so enabling ly fails if another display
+# manager (gdm, sddm, ...) is already enabled.
 
-if systemctl is-enabled --quiet ly.service; then
-    info "ly is already enabled - skipping."
+LY_SERVICE="ly@tty2.service"
+
+if systemctl is-enabled --quiet "$LY_SERVICE"; then
+    info "ly is already enabled on $LY_SERVICE - skipping."
 else
-    info "Enabling ly (it will start on the next boot)..."
-    sudo systemctl enable ly.service \
+    info "Enabling ly on $LY_SERVICE (it will start on the next boot)..."
+    sudo systemctl enable "$LY_SERVICE" \
         || error "Could not enable ly - another display manager may be enabled. Disable it first: sudo systemctl disable <name>"
 fi
 
