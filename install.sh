@@ -2,8 +2,9 @@
 #
 # install.sh - Bootstrap a fresh Arch Linux install for this niri setup.
 #
-#   1. Installs yay (AUR helper) if it is not already installed
-#   2. Installs every package listed in packages.txt
+#   1. Refreshes the Arch keyring (prevents "unknown trust" signature errors)
+#   2. Installs yay (AUR helper) if it is not already installed
+#   3. Installs every package listed in packages.txt
 #
 # Packages are installed with yay, which resolves official-repo packages
 # through pacman and builds the AUR-only ones (wayle, wlogout,
@@ -43,7 +44,20 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# --- Step 1: Install yay -----------------------------------------------------
+# --- Step 1: Refresh the Arch keyring ----------------------------------------
+# On a fresh (or stale) system, an outdated archlinux-keyring makes package
+# installs fail with "signature is unknown trust" errors. Refresh it first;
+# if the local pacman keyring has never been set up, initialize it and retry.
+
+info "Refreshing the Arch keyring..."
+if ! sudo pacman -Sy --needed --noconfirm archlinux-keyring; then
+    info "Initializing the pacman keyring and retrying..."
+    sudo pacman-key --init
+    sudo pacman-key --populate archlinux
+    sudo pacman -Sy --needed --noconfirm archlinux-keyring
+fi
+
+# --- Step 2: Install yay -----------------------------------------------------
 
 if command -v yay &>/dev/null; then
     info "yay is already installed - skipping build."
@@ -62,7 +76,7 @@ else
     info "yay installed successfully."
 fi
 
-# --- Step 2: Read packages.txt -----------------------------------------------
+# --- Step 3: Read packages.txt -----------------------------------------------
 # Strip comments (# ...) and blank lines, then read one package per line.
 
 info "Reading package list from $PACKAGES_FILE..."
@@ -79,7 +93,7 @@ fi
 info "Installing ${#PACKAGES[@]} packages:"
 printf '    %s\n' "${PACKAGES[@]}"
 
-# --- Step 3: Install packages ------------------------------------------------
+# --- Step 4: Install packages ------------------------------------------------
 # --needed skips packages that are already up to date, so this script can be
 # re-run safely. yay pulls official-repo packages via pacman and builds the
 # AUR ones.

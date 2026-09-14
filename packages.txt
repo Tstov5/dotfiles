@@ -28,6 +28,11 @@ bluez-utils
 # --- Font (used by kitty, fuzzel, wayle, wlogout) ---
 ttf-jetbrains-mono-nerd
 
+# --- Keyring / secrets ---
+gnome-keyring
+libsecret
+python-keyring
+
 # --- AUR (install with yay, not pacman) ---
 wayle
 wlogout
