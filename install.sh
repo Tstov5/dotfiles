@@ -5,6 +5,7 @@
 #   1. Refreshes the Arch keyring (prevents "unknown trust" signature errors)
 #   2. Installs yay (AUR helper) if it is not already installed
 #   3. Installs every package listed in packages.txt
+#   4. Enables the ly display manager (starts on next boot)
 #
 # Packages are installed with yay, which resolves official-repo packages
 # through pacman and handles the AUR ones (wayle-bin, wlogout,
@@ -102,6 +103,20 @@ info "Installing packages with yay..."
 yay -S --needed --noconfirm "${PACKAGES[@]}"
 
 info "All packages installed."
+
+# --- Step 5: Enable the ly display manager -----------------------------------
+# ly provides the TUI login screen and starts niri from the session files in
+# /usr/share/wayland-sessions. Only one display manager can be enabled at a
+# time (they all claim the display-manager.service alias), so enabling ly
+# fails if another display manager (gdm, sddm, ...) is already enabled.
+
+if systemctl is-enabled --quiet ly.service; then
+    info "ly is already enabled - skipping."
+else
+    info "Enabling ly (it will start on the next boot)..."
+    sudo systemctl enable ly.service \
+        || error "Could not enable ly - another display manager may be enabled. Disable it first: sudo systemctl disable <name>"
+fi
 
 # Optional: enable the services some of these packages provide.
 # Uncomment the ones you want on a fresh install:
