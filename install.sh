@@ -2,6 +2,9 @@
 #
 # install.sh - Bootstrap a fresh Arch Linux install for this niri setup.
 #
+#   0. Deploys the dotfiles: renames the cloned "dotfiles" directory to ".config"
+#      (equivalent to `mv dotfiles .config`), so you only need to clone, cd, and
+#      run this script.
 #   1. Refreshes the Arch keyring (prevents "unknown trust" signature errors)
 #   2. Installs yay (AUR helper) if it is not already installed
 #   3. Installs every package listed in packages.txt
@@ -31,7 +34,31 @@ if ! command -v pacman &>/dev/null; then
     error "pacman not found - this script only works on Arch Linux and derivatives."
 fi
 
+# --- Step 0: Deploy the dotfiles into ~/.config --------------------------------
+# A fresh clone lands in a directory literally called "dotfiles". Rename it to
+# ".config" (mirroring `mv dotfiles .config`) so the repo contents land where
+# applications expect them — this means you only have to clone and run this
+# script. Bash has already read the script off disk, so renaming its own
+# directory mid-run is safe; we then just re-point SCRIPT_DIR at the new path.
+# If the directory is already named ".config" this whole block is a no-op,
+# which keeps the script safe to re-run.
+
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+REPO_NAME="$(basename "$SCRIPT_DIR")"
+
+if [[ "$REPO_NAME" == "dotfiles" ]]; then
+    REPO_PARENT="$(dirname "$SCRIPT_DIR")"
+    TARGET="$REPO_PARENT/.config"
+
+    if [[ -e "$TARGET" ]]; then
+        error "A '.config' already exists at $TARGET. Move it aside first, or rename the repo by hand: mv dotfiles .config"
+    fi
+
+    info "Deploying dotfiles: renaming '$REPO_NAME' -> '.config'"
+    mv -- "$SCRIPT_DIR" "$TARGET" || error "Failed to rename '$REPO_NAME' to '.config'"
+    SCRIPT_DIR="$TARGET"
+fi
+
 PACKAGES_FILE="$SCRIPT_DIR/packages.txt"
 
 [[ -f "$PACKAGES_FILE" ]] || error "packages.txt not found at $PACKAGES_FILE"
