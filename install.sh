@@ -95,10 +95,34 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# --- Step 1: Refresh the Arch keyring ----------------------------------------
+# --- Step 1: Refresh the Arch keyring & configure keyserver ---------------------
 # On a fresh (or stale) system, an outdated archlinux-keyring makes package
 # installs fail with "signature is unknown trust" errors. Refresh it first;
 # if the local pacman keyring has never been set up, initialize it and retry.
+#
+# Two additional problems are addressed here:
+#   1. System clock drift — on a fresh Arch ISO install NTP may not be running,
+#      which causes TLS certificate failures that break keyserver connections.
+#   2. No GPG keyserver configured — when makepkg builds AUR packages it must
+#      import GPG public keys to verify signed source tarballs. Without a
+#      configured keyserver this fails with:
+#        "keyserver receive failed: Server indicated a failure"
+
+# Sync the system clock. A wrong clock breaks TLS connections to keyservers.
+# On a fresh Arch ISO install, systemd-timesyncd may not have synced yet.
+info "Synchronizing system clock via NTP..."
+if command -v timedatectl &>/dev/null; then
+    sudo timedatectl set-ntp true
+    for _ in {1..10}; do
+        if timedatectl show -p NTPSynchronized --value 2>/dev/null | grep -qi yes; then
+            break
+        fi
+        sleep 1
+    done
+    timedatectl status || true
+else
+    info "timedatectl not found - skipping NTP sync (install systemd for time sync)."
+fi
 
 info "Refreshing the Arch keyring..."
 if ! sudo pacman -Sy --needed --noconfirm archlinux-keyring; then
@@ -107,6 +131,48 @@ if ! sudo pacman -Sy --needed --noconfirm archlinux-keyring; then
     sudo pacman-key --populate archlinux
     sudo pacman -Sy --needed --noconfirm archlinux-keyring
 fi
+
+# Configure the keyserver for the pacman keyring (used by pacman-key).
+info "Configuring pacman keyring keyserver..."
+sudo mkdir -p /etc/pacman.d/gnupg
+cat <<'EOF' | sudo tee /etc/pacman.d/gnupg/gpg.conf > /dev/null
+keyserver hkps://keys.openpgp.org
+keyserver-options auto-key-locate nodefault
+EOF
+
+# Refresh all known keys from the keyserver (with retry for flaky connections).
+info "Refreshing pacman keys..."
+for attempt in 1 2 3; do
+    if sudo pacman-key --refresh-keys; then
+        break
+    fi
+    info "pacman-key refresh attempt $attempt failed, retrying..."
+    sleep 2
+done
+info "Key refresh complete (non-fatal if some keys could not be refreshed)."
+
+# Configure the user GPG keyring for AUR package builds.
+# makepkg (called by yay) verifies GPG signatures on source tarballs and fetches
+# required public keys using the user's GPG keyring (~/.gnupg). On a fresh system
+# no keyserver is configured, causing "keyserver receive failed" errors.
+info "Configuring user GPG keyserver for AUR package builds..."
+GNUPGHOME="$HOME/.gnupg"
+mkdir -p "$GNUPGHOME"
+chmod 700 "$GNUPGHOME"
+
+cat > "$GNUPGHOME/gpg.conf" <<'EOF'
+keyserver hkps://keys.openpgp.org
+keyserver-options auto-key-locate nodefault
+keyserver-options auto-key-retrieve
+EOF
+
+cat > "$GNUPGHOME/dirmngr.conf" <<'EOF'
+keyserver hkps://keys.openpgp.org
+EOF
+
+# Restart dirmngr so it picks up the new keyserver configuration.
+gpgconf --kill dirmngr 2>/dev/null || true
+gpgconf --launch dirmngr 2>/dev/null || true
 
 # --- Step 2: Install yay -----------------------------------------------------
 
