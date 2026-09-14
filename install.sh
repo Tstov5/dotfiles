@@ -10,12 +10,13 @@
 #   3. Installs every package listed in packages.txt
 #   4. Enables the ly display manager (starts on next boot)
 #   5. Installs the Cline CLI via npm (after nodejs/npm above)
+#   6. Reboots the system (only if every step completed without errors)
 #
 # Packages are installed with yay, which resolves official-repo packages
 # through pacman and handles the AUR ones (wayle-bin, wlogout,
 # zen-browser-bin) automatically.
 #
-# Usage: ./install.sh
+# Usage: ./install.sh [--no-reboot]
 
 set -euo pipefail
 
@@ -23,6 +24,27 @@ set -euo pipefail
 
 info()  { printf '\033[1;34m::\033[0m %s\n' "$*"; }
 error() { printf '\033[1;31m::\033[0m %s\n' "$*" >&2; exit 1; }
+
+# --- Options -----------------------------------------------------------------
+
+REBOOT=true
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --no-reboot)
+            REBOOT=false
+            shift
+            ;;
+        -h|--help)
+            info "Usage: install.sh [--no-reboot]"
+            info "Installs all packages and configuration for the dotfiles."
+            info "On success the system reboots automatically unless --no-reboot is given."
+            exit 0
+            ;;
+        *)
+            error "Unknown argument: $1 (use -h or --help for usage)"
+            ;;
+    esac
+done
 
 # --- Sanity checks -----------------------------------------------------------
 
@@ -180,4 +202,21 @@ else
     sudo npm install -g cline
     command -v cline &>/dev/null || error "cline installation failed."
     info "cline installed at $(command -v cline)"
+fi
+
+# --- Step 7: Reboot on success ------------------------------------------------
+# This script runs with `set -euo pipefail`, so any command that fails exits
+# the script immediately with a non-zero status. Reaching this point therefore
+# means every step completed without errors. Reboot so newly enabled services
+# (e.g. ly) and any kernel updates take full effect.
+# Pass --no-reboot to skip the restart.
+
+if [[ "$REBOOT" == true ]]; then
+    info "All steps completed successfully — no errors detected."
+    info "Rebooting in 10 seconds... (press Ctrl+C to cancel the reboot)"
+    sleep 10
+    info "Rebooting now."
+    sudo systemctl reboot
+else
+    info "All steps completed successfully, but --no-reboot was given - skipping reboot."
 fi
