@@ -100,16 +100,16 @@ trap cleanup EXIT
 
 # --- Step 1: Sync clock, refresh keyring, configure keyservers -----------------
 # Fixes three common fresh-install problems:
-#   1. Clock drift → TLS cert failures → keyserver connection errors
+#   1. Clock drift → TLS cert failures → HTTPS downloads (pacman, git, curl)
 #   2. Stale archlinux-keyring → "unknown trust" signature errors
-#   3. No GPG keyserver configured → "keyserver receive failed"
+#   3. No GPG keyserver configured → "keyserver receive failed" for AUR keys
 KEYSERVER="hkp://keyserver.ubuntu.com:80"
 
-# Sync clock — a wrong clock breaks TLS connections to keyservers.
+# Sync clock — a wrong clock breaks TLS for HTTPS downloads and keyservers.
 if command -v timedatectl &>/dev/null; then
     info "Syncing system clock via NTP..."
     sudo timedatectl set-ntp true || info "NTP sync failed - continuing"
-    for _ in {1..10}; do
+    for _ in {1..3}; do
         timedatectl show -p NTPSynchronized --value 2>/dev/null | grep -qi yes && break
         sleep 1
     done
@@ -125,22 +125,6 @@ if ! sudo pacman -Sy --needed --noconfirm archlinux-keyring; then
     sudo pacman-key --populate archlinux
     sudo pacman -Sy --needed --noconfirm archlinux-keyring
 fi
-
-# Configure keyserver for pacman-key (used to refresh package signing keys).
-info "Configuring keyserver..."
-sudo mkdir -p /etc/pacman.d/gnupg
-sudo tee /etc/pacman.d/gnupg/gpg.conf > /dev/null <<EOF
-keyserver $KEYSERVER
-keyserver-options auto-key-locate nodefault
-EOF
-
-# Refresh pacman keys (with retry for flaky connections).
-for attempt in 1 2 3; do
-    sudo pacman-key --refresh-keys && break
-    info "pacman-key refresh failed (attempt $attempt), retrying..."
-    sleep 2
-done
-info "Key refresh complete (non-fatal if some keys failed)."
 
 # Configure user GPG for makepkg — it fetches keys when verifying AUR signatures.
 info "Configuring user GPG keyserver for AUR builds..."
