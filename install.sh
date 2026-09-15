@@ -99,73 +99,61 @@ cleanup() {
 trap cleanup EXIT
 
 # --- Step 1: Sync clock, refresh keyring, configure keyservers -----------------
-# Three things that commonly break package/key imports on a fresh Arch ISO:
+# Fixes three common fresh-install problems:
 #   1. Clock drift → TLS cert failures → keyserver connection errors
 #   2. Stale archlinux-keyring → "unknown trust" signature errors
-#   3. No GPG keyserver configured → "keyserver receive failed: Server
-#      indicated a failure" when makepkg builds AUR packages
+#   3. No GPG keyserver configured → "keyserver receive failed"
+KEYSERVER="hkp://keyserver.ubuntu.com:80"
 
-
-# Sync the system clock. A wrong clock breaks TLS connections to keyservers.
-# On a fresh Arch ISO install, systemd-timesyncd may not have synced yet.
-info "Synchronizing system clock via NTP..."
+# Sync clock — a wrong clock breaks TLS connections to keyservers.
 if command -v timedatectl &>/dev/null; then
+    info "Syncing system clock via NTP..."
     sudo timedatectl set-ntp true || info "NTP sync failed - continuing"
     for _ in {1..10}; do
-        if timedatectl show -p NTPSynchronized --value 2>/dev/null | grep -qi yes; then
-            break
-        fi
+        timedatectl show -p NTPSynchronized --value 2>/dev/null | grep -qi yes && break
         sleep 1
     done
-    timedatectl status || true
 else
-    info "timedatectl not found - skipping NTP sync (install systemd for time sync)."
+    info "timedatectl not found - skipping NTP sync"
 fi
 
+# Refresh the Arch keyring (prevents "unknown trust" signature errors).
 info "Refreshing the Arch keyring..."
 if ! sudo pacman -Sy --needed --noconfirm archlinux-keyring; then
-    info "Initializing the pacman keyring and retrying..."
+    info "Initializing pacman keyring and retrying..."
     sudo pacman-key --init
     sudo pacman-key --populate archlinux
     sudo pacman -Sy --needed --noconfirm archlinux-keyring
 fi
 
-# Configure the keyserver for the pacman keyring (used by pacman-key).
-info "Configuring pacman keyring keyserver..."
+# Configure keyserver for pacman-key (used to refresh package signing keys).
+info "Configuring keyserver..."
 sudo mkdir -p /etc/pacman.d/gnupg
-cat <<'EOF' | sudo tee /etc/pacman.d/gnupg/gpg.conf > /dev/null
-keyserver hkp://keyserver.ubuntu.com:80
+sudo tee /etc/pacman.d/gnupg/gpg.conf > /dev/null <<EOF
+keyserver $KEYSERVER
 keyserver-options auto-key-locate nodefault
 EOF
 
-# Refresh all known keys from the keyserver (with retry for flaky connections).
-info "Refreshing pacman keys..."
+# Refresh pacman keys (with retry for flaky connections).
 for attempt in 1 2 3; do
-    if sudo pacman-key --refresh-keys; then
-        break
-    fi
-    info "pacman-key refresh attempt $attempt failed, retrying..."
+    sudo pacman-key --refresh-keys && break
+    info "pacman-key refresh failed (attempt $attempt), retrying..."
     sleep 2
 done
-info "Key refresh complete (non-fatal if some keys could not be refreshed)."
+info "Key refresh complete (non-fatal if some keys failed)."
 
-# Configure the user GPG keyring (~/.gnupg) so makepkg can fetch keys.
-info "Configuring user GPG keyserver for AUR package builds..."
-GNUPGHOME="$HOME/.gnupg"
-mkdir -p "$GNUPGHOME"
-chmod 700 "$GNUPGHOME"
-
-cat > "$GNUPGHOME/gpg.conf" <<'EOF'
-keyserver hkp://keyserver.ubuntu.com:80
+# Configure user GPG for makepkg — it fetches keys when verifying AUR signatures.
+info "Configuring user GPG keyserver for AUR builds..."
+mkdir -p ~/.gnupg
+chmod 700 ~/.gnupg
+tee ~/.gnupg/gpg.conf > /dev/null <<EOF
+keyserver $KEYSERVER
 keyserver-options auto-key-locate nodefault
 keyserver-options auto-key-retrieve
 EOF
-
-cat > "$GNUPGHOME/dirmngr.conf" <<'EOF'
-keyserver hkp://keyserver.ubuntu.com:80
+tee ~/.gnupg/dirmngr.conf > /dev/null <<EOF
+keyserver $KEYSERVER
 EOF
-
-# Restart dirmngr so it picks up the new keyserver configuration.
 gpgconf --kill dirmngr 2>/dev/null || true
 gpgconf --launch dirmngr 2>/dev/null || true
 
@@ -225,11 +213,11 @@ for entry in "${AUR_PGP_KEYS[@]}"; do
     fi
 
     info "Importing GPG key $keyid (required by AUR package builds)..."
-    if ! gpg --batch --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys "$keyid"; then
+    if ! gpg --batch --keyserver "$KEYSERVER" --recv-keys "$keyid"; then
         info "Keyserver import failed for $keyid — falling back to GitHub..."
         if ! curl -sSL "https://github.com/${gh_user}.gpg" | gpg --batch --import; then
             info "Could not import GPG key $keyid — builds requiring it may fail."
-            info "Try importing it manually: gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys $keyid"
+            info "Try importing it manually: gpg --keyserver $KEYSERVER --recv-keys $keyid"
         fi
     fi
 done
