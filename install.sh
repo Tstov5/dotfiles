@@ -177,6 +177,15 @@ fi
 info "Installing ${#PACKAGES[@]} packages:"
 printf '    %s\n' "${PACKAGES[@]}"
 
+# steam lives in the multilib repo, which is disabled by default on a fresh
+# Arch install. Fail early with a clear fix instead of yay's unhelpful
+# "target not found: steam" error.
+if printf '%s\n' "${PACKAGES[@]}" | grep -qx 'steam'; then
+    if ! grep -Eq '^\[multilib\]' /etc/pacman.conf; then
+        error "steam requires the [multilib] repo. Uncomment the [multilib] section (and its Include line) in /etc/pacman.conf, then run: sudo pacman -Sy"
+    fi
+fi
+
 # --- Step 3b: Pre-import GPG keys for AUR packages with signed sources ---------
 # If the key is absent, makepkg's auto-fetch from keyservers often fails with
 # "keyserver receive failed: Server indicated a failure". We import explicitly

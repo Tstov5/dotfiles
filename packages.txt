@@ -57,3 +57,16 @@ zen-browser-bin
 # shelly-git, so choose only one. shelly-bin avoids the compilation step.
 shelly
 vscodium-bin
+
+# --- Gaming ---
+# steam is in the multilib repo, which is disabled by default on a fresh Arch
+# install. Enable it in /etc/pacman.conf (uncomment the [multilib] section),
+# then run: sudo pacman -Sy
+steam
+# mangohud is in the official repos. For 32-bit (lib32) game support also
+# install lib32-mangohud from multilib.
+mangohud
+# AUR: protonup-qt manages Proton versions (GE-Proton etc.) for Steam;
+# mangojuice is a GUI for configuring MangoHud.
+protonup-qt
+mangojuice
