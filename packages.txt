@@ -13,6 +13,10 @@ swaybg
 wl-clipboard
 cliphist
 
+# --- PolicyKit authentication (required by shelly and other GUI apps) ---
+polkit
+polkit-gnome
+
 # --- Audio / media / brightness (niri keybinds, audio-switcher.sh) ---
 pipewire
 pipewire-pulse

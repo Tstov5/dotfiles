@@ -264,6 +264,14 @@ else
         || error "Could not enable ly - another display manager may be enabled. Disable it first: sudo systemctl disable <name>"
 fi
 
+# Enable polkit daemon (needed by shelly's GUI for privileged operations).
+if systemctl is-enabled --quiet polkit.service 2>/dev/null; then
+    info "polkit is already enabled - skipping."
+else
+    info "Enabling polkit daemon..."
+    sudo systemctl enable --now polkit.service || info "Could not enable polkit - some GUI apps may not work."
+fi
+
 # Optional: enable the services some of these packages provide.
 # Uncomment the ones you want on a fresh install:
 #

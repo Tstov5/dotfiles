@@ -51,6 +51,7 @@ environment {
 }
 
 spawn-at-startup "swaybg" "-c" "#000000"
+spawn-at-startup "/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1"
 spawn-at-startup "wl-paste" "--watch" "cliphist" "store"
 spawn-at-startup "wayle" "panel" "start"
 
