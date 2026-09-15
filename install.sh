@@ -210,6 +210,38 @@ fi
 info "Installing ${#PACKAGES[@]} packages:"
 printf '    %s\n' "${PACKAGES[@]}"
 
+# --- Step 3b: Pre-import GPG keys for AUR packages ----------------------------
+# AUR packages with GPG-signed sources (e.g. wlogout) fail to build if the
+# signing key is absent from the local keyring and the default keyserver
+# rejects the request ("keyserver receive failed: Server indicated a failure").
+# Pre-import the keys here to avoid build failures. Falls back from the
+# keyserver (port 80 to bypass common firewall blocks) to the GitHub .gpg
+# endpoint, which is reliably available.
+#
+# Format: "KEYID:GITHUB_USER"
+AUR_PGP_KEYS=(
+    "F4FDB18A9937358364B276E9E25D679AF73C6D2F:ArtsyMacaw"  # wlogout
+)
+
+for entry in "${AUR_PGP_KEYS[@]}"; do
+    keyid="${entry%%:*}"
+    gh_user="${entry##*:}"
+
+    if gpg --list-keys "$keyid" &>/dev/null 2>&1; then
+        info "GPG key $keyid already present - skipping."
+        continue
+    fi
+
+    info "Importing GPG key $keyid (required by AUR package builds)..."
+    if ! gpg --batch --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys "$keyid"; then
+        info "Keyserver import failed for $keyid — falling back to GitHub..."
+        if ! curl -sSL "https://github.com/${gh_user}.gpg" | gpg --batch --import; then
+            info "Could not import GPG key $keyid — builds requiring it may fail."
+            info "Try importing it manually: gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys $keyid"
+        fi
+    fi
+done
+
 # --- Step 4: Install packages ------------------------------------------------
 # --needed skips packages that are already up to date, so this script can be
 # re-run safely. yay pulls official-repo packages via pacman and builds the
