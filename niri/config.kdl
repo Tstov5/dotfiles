@@ -59,7 +59,7 @@ animations {
 
 binds {
 	Mod+Return { spawn "kitty"; }
-	Mod+B { spawn "zen"; }
+	Mod+B { spawn "zen-browser"; }
 	Mod+P { spawn "wlogout"; }
 	Mod+Q { close-window; }
 	Mod+Shift+E { quit; }
