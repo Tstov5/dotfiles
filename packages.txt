@@ -49,3 +49,6 @@ wlogout
 # binary if you prefer a faster install.
 localsend
 zen-browser-bin
+# shelly is a source build using zig; it conflicts with shelly-bin and
+# shelly-git, so choose only one. shelly-bin avoids the compilation step.
+shelly-bin

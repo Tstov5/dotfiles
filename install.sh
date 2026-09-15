@@ -14,7 +14,7 @@
 #
 # Packages are installed with yay, which resolves official-repo packages
 # through pacman and handles the AUR ones (wayle-bin, wlogout, localsend,
-# zen-browser-bin) automatically.
+# shelly, zen-browser-bin) automatically.
 #
 # Usage: ./install.sh [--no-reboot]
 
