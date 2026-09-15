@@ -5,12 +5,15 @@
 #   0. Deploys the dotfiles: renames the cloned "dotfiles" directory to ".config"
 #      (equivalent to `mv dotfiles .config`), so you only need to clone, cd, and
 #      run this script.
-#   1. Refreshes the Arch keyring (prevents "unknown trust" signature errors)
+#   1. Syncs NTP clock, refreshes the Arch keyring, and configures GPG
+#      keyservers for pacman-key and makepkg
 #   2. Installs yay (AUR helper) if it is not already installed
-#   3. Installs every package listed in packages.txt
-#   4. Enables the ly display manager (starts on next boot)
-#   5. Installs the Cline CLI via npm (after nodejs/npm above)
-#   6. Reboots the system (only if every step completed without errors)
+#   3. Reads the package list from packages.txt
+#   3b. Pre-imports GPG keys required by AUR packages with signed sources
+#   4. Installs every package listed in packages.txt via yay
+#   5. Enables the ly display manager (starts on next boot)
+#   6. Installs the Cline CLI via npm (after nodejs/npm above)
+#   7. Reboots the system (only if every step completed without errors)
 #
 # Packages are installed with yay, which resolves official-repo packages
 # through pacman and handles the AUR ones (wayle-bin, wlogout, localsend,
@@ -95,24 +98,19 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# --- Step 1: Refresh the Arch keyring & configure keyserver ---------------------
-# On a fresh (or stale) system, an outdated archlinux-keyring makes package
-# installs fail with "signature is unknown trust" errors. Refresh it first;
-# if the local pacman keyring has never been set up, initialize it and retry.
-#
-# Two additional problems are addressed here:
-#   1. System clock drift — on a fresh Arch ISO install NTP may not be running,
-#      which causes TLS certificate failures that break keyserver connections.
-#   2. No GPG keyserver configured — when makepkg builds AUR packages it must
-#      import GPG public keys to verify signed source tarballs. Without a
-#      configured keyserver this fails with:
-#        "keyserver receive failed: Server indicated a failure"
+# --- Step 1: Sync clock, refresh keyring, configure keyservers -----------------
+# Three things that commonly break package/key imports on a fresh Arch ISO:
+#   1. Clock drift → TLS cert failures → keyserver connection errors
+#   2. Stale archlinux-keyring → "unknown trust" signature errors
+#   3. No GPG keyserver configured → "keyserver receive failed: Server
+#      indicated a failure" when makepkg builds AUR packages
+
 
 # Sync the system clock. A wrong clock breaks TLS connections to keyservers.
 # On a fresh Arch ISO install, systemd-timesyncd may not have synced yet.
 info "Synchronizing system clock via NTP..."
 if command -v timedatectl &>/dev/null; then
-    sudo timedatectl set-ntp true
+    sudo timedatectl set-ntp true || info "NTP sync failed - continuing"
     for _ in {1..10}; do
         if timedatectl show -p NTPSynchronized --value 2>/dev/null | grep -qi yes; then
             break
@@ -136,7 +134,7 @@ fi
 info "Configuring pacman keyring keyserver..."
 sudo mkdir -p /etc/pacman.d/gnupg
 cat <<'EOF' | sudo tee /etc/pacman.d/gnupg/gpg.conf > /dev/null
-keyserver hkps://keys.openpgp.org
+keyserver hkp://keyserver.ubuntu.com:80
 keyserver-options auto-key-locate nodefault
 EOF
 
@@ -151,23 +149,20 @@ for attempt in 1 2 3; do
 done
 info "Key refresh complete (non-fatal if some keys could not be refreshed)."
 
-# Configure the user GPG keyring for AUR package builds.
-# makepkg (called by yay) verifies GPG signatures on source tarballs and fetches
-# required public keys using the user's GPG keyring (~/.gnupg). On a fresh system
-# no keyserver is configured, causing "keyserver receive failed" errors.
+# Configure the user GPG keyring (~/.gnupg) so makepkg can fetch keys.
 info "Configuring user GPG keyserver for AUR package builds..."
 GNUPGHOME="$HOME/.gnupg"
 mkdir -p "$GNUPGHOME"
 chmod 700 "$GNUPGHOME"
 
 cat > "$GNUPGHOME/gpg.conf" <<'EOF'
-keyserver hkps://keys.openpgp.org
+keyserver hkp://keyserver.ubuntu.com:80
 keyserver-options auto-key-locate nodefault
 keyserver-options auto-key-retrieve
 EOF
 
 cat > "$GNUPGHOME/dirmngr.conf" <<'EOF'
-keyserver hkps://keys.openpgp.org
+keyserver hkp://keyserver.ubuntu.com:80
 EOF
 
 # Restart dirmngr so it picks up the new keyserver configuration.
@@ -210,13 +205,10 @@ fi
 info "Installing ${#PACKAGES[@]} packages:"
 printf '    %s\n' "${PACKAGES[@]}"
 
-# --- Step 3b: Pre-import GPG keys for AUR packages ----------------------------
-# AUR packages with GPG-signed sources (e.g. wlogout) fail to build if the
-# signing key is absent from the local keyring and the default keyserver
-# rejects the request ("keyserver receive failed: Server indicated a failure").
-# Pre-import the keys here to avoid build failures. Falls back from the
-# keyserver (port 80 to bypass common firewall blocks) to the GitHub .gpg
-# endpoint, which is reliably available.
+# --- Step 3b: Pre-import GPG keys for AUR packages with signed sources ---------
+# If the key is absent, makepkg's auto-fetch from keyservers often fails with
+# "keyserver receive failed: Server indicated a failure". We import explicitly
+# via port 80 (bypasses common firewall blocks), falling back to GitHub .gpg.
 #
 # Format: "KEYID:GITHUB_USER"
 AUR_PGP_KEYS=(
