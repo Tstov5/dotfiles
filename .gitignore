@@ -9,6 +9,8 @@
 !install.sh
 !packages.txt
 !fuzzel/
+!gtk-3.0/
+!gtk-4.0/
 !kitty/
 !local/
 !niri/

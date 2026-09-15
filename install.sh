@@ -225,6 +225,25 @@ yay -S --needed --noconfirm "${PACKAGES[@]}"
 
 info "All packages installed."
 
+# --- Step 4b: Set system-wide dark mode ----------------------------------------
+# Two layers:
+#   1. The gsettings 'color-scheme' is stored in dconf (not a file), so it must
+#      be re-applied on a fresh install. The xdg-desktop-portal reads it and
+#      exposes prefer-dark to browsers, GTK4/libadwaita, Electron, and Qt6 apps.
+#   2. The tracked gtk-3.0/gtk-4.0 settings.ini files handle legacy GTK3 apps
+#      (gtk-application-prefer-dark-theme=1) - those deploy with the dotfiles.
+# gsettings needs a D-Bus session bus; if this script is run from a bare TTY
+# there may not be one, so skip gracefully instead of failing the install.
+
+if [[ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ]]; then
+    gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark' \
+        && info "Dark mode enabled (color-scheme = prefer-dark)." \
+        || info "Could not set color-scheme - run this once logged in: gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'"
+else
+    info "No D-Bus session - skipping dark mode setting."
+    info "Run this once logged in: gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'"
+fi
+
 # --- Step 5: Enable the ly display manager -----------------------------------
 # ly provides the TUI login screen and starts niri from the session files in
 # /usr/share/wayland-sessions. The ly package ships a template service
