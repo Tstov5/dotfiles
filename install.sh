@@ -13,7 +13,7 @@
 #   6. Reboots the system (only if every step completed without errors)
 #
 # Packages are installed with yay, which resolves official-repo packages
-# through pacman and handles the AUR ones (wayle-bin, wlogout,
+# through pacman and handles the AUR ones (wayle-bin, wlogout, localsend,
 # zen-browser-bin) automatically.
 #
 # Usage: ./install.sh [--no-reboot]

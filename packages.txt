@@ -44,4 +44,8 @@ npm
 # installed (RUSTUP_TOOLCHAIN=stable -> "toolchain 'stable' is not installed").
 wayle-bin
 wlogout
+# localsend is a source build (Rust + Flutter via the `fvm` AUR makedepend),
+# so it takes several minutes to compile. Use localsend-bin for a prebuilt
+# binary if you prefer a faster install.
+localsend
 zen-browser-bin
