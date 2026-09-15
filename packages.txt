@@ -70,6 +70,10 @@ steam
 # mangohud is in the official repos. For 32-bit (lib32) game support also
 # install lib32-mangohud from multilib.
 mangohud
+# gamemode is in the official repos; it optimizes system settings (CPU
+# governor, niceness, etc.) while a game is running. Launch games with
+# `gamemoderun %command%` in Steam launch options to use it.
+gamemode
 # AUR: protonup-qt manages Proton versions (GE-Proton etc.) for Steam;
 # mangojuice is a GUI for configuring MangoHud.
 protonup-qt
