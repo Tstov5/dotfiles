@@ -12,6 +12,10 @@ thunar
 swaybg
 wl-clipboard
 cliphist
+# xwayland-satellite provides X11 app support on niri (which has no built-in
+# XWayland). Required by Steam and other X11 apps; pulls in xorg-xwayland as
+# a dependency. DISPLAY ":0" is set in the niri config environment block.
+xwayland-satellite
 
 # --- PolicyKit authentication (required by shelly and other GUI apps) ---
 polkit
