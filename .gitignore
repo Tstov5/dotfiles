@@ -1,0 +1,16 @@
+# Whitelist approach: ignore everything in ~/.config by default,
+# then re-include only the custom dotfiles tracked by this repo.
+
+# Ignore everything at the top level
+/*
+
+# Custom dotfiles (tracked in this repo)
+!.gitignore
+!install.sh
+!packages.txt
+!fuzzel/
+!kitty/
+!local/
+!niri/
+!wayle/
+!wlogout/
