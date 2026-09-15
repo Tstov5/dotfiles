@@ -14,10 +14,6 @@ input {
 		natural-scroll
 	}
 
-	mouse {
-		natural-scroll
-	}
-
 	focus-follows-mouse
 	mod-key "Super"
 }
