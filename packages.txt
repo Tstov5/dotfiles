@@ -7,6 +7,18 @@ kitty
 fuzzel
 gtklock
 thunar
+# --- Thunar extras (thumbnails, archives, removable media) ---
+# tumbler generates thumbnails (images, PDFs, etc.); ffmpegthumbnailer adds
+# video thumbnails on top of it. thunar-archive-plugin adds the
+# extract/compress context-menu entries (uses file-roller as the backend).
+# thunar-volman handles removable media (auto-mount prompts); gvfs provides
+# trash, network locations and mounting.
+tumbler
+ffmpegthumbnailer
+thunar-archive-plugin
+file-roller
+thunar-volman
+gvfs
 
 # --- Wayland utilities (spawned at startup in niri/config.kdl) ---
 swaybg
