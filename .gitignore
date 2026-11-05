@@ -6,6 +6,7 @@
 
 # Custom dotfiles (tracked in this repo)
 !.gitignore
+!.clinerules
 !install.sh
 !packages.txt
 !fuzzel/

@@ -2,9 +2,9 @@
 #
 # install.sh - Bootstrap a fresh Arch Linux install for this niri setup.
 #
-#   0. Deploys the dotfiles: renames the cloned "dotfiles" directory to ".config"
-#      (equivalent to `mv dotfiles .config`), so you only need to clone, cd, and
-#      run this script.
+#   0. Deploys the dotfiles: symlinks each app directory of the repo into
+#      ~/.config (existing ones are backed up first), so you only need to clone,
+#      cd, and run this script.
 #   1. Syncs NTP clock, refreshes the Arch keyring, and configures GPG
 #      keyservers for pacman-key and makepkg
 #   2. Installs yay (AUR helper) if it is not already installed
@@ -61,28 +61,32 @@ if ! command -v pacman &>/dev/null; then
 fi
 
 # --- Step 0: Deploy the dotfiles into ~/.config --------------------------------
-# A fresh clone lands in a directory literally called "dotfiles". Rename it to
-# ".config" (mirroring `mv dotfiles .config`) so the repo contents land where
-# applications expect them — this means you only have to clone and run this
-# script. Bash has already read the script off disk, so renaming its own
-# directory mid-run is safe; we then just re-point SCRIPT_DIR at the new path.
-# If the directory is already named ".config" this whole block is a no-op,
-# which keeps the script safe to re-run.
+# Each app directory in the repo is symlinked into ~/.config. Existing
+# directories are moved to a timestamped backup first. Links that already
+# point at this repo are skipped, so the script is safe to re-run.
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
-REPO_NAME="$(basename "$SCRIPT_DIR")"
 
-if [[ "$REPO_NAME" == "dotfiles" ]]; then
-    REPO_PARENT="$(dirname "$SCRIPT_DIR")"
-    TARGET="$REPO_PARENT/.config"
+CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
 
-    if [[ -e "$TARGET" ]]; then
-        error "A '.config' already exists at $TARGET. Move it aside first, or rename the repo by hand: mv dotfiles .config"
-    fi
-
-    info "Deploying dotfiles: renaming '$REPO_NAME' -> '.config'"
-    mv -- "$SCRIPT_DIR" "$TARGET" || error "Failed to rename '$REPO_NAME' to '.config'"
-    SCRIPT_DIR="$TARGET"
+if [[ "$SCRIPT_DIR" != "$CONFIG_HOME" ]]; then
+    info "Linking dotfiles from $SCRIPT_DIR into $CONFIG_HOME"
+    mkdir -p -- "$CONFIG_HOME"
+    BACKUP_DIR="$CONFIG_HOME/dotfiles-backup-$(date +%Y%m%d%H%M%S)"
+    for src in "$SCRIPT_DIR"/*/; do
+        name="$(basename "$src")"
+        dest="$CONFIG_HOME/$name"
+        src="${src%/}"
+        if [[ -L "$dest" && "$(readlink -f "$dest")" == "$(readlink -f "$src")" ]]; then
+            continue
+        fi
+        if [[ -e "$dest" || -L "$dest" ]]; then
+            mkdir -p -- "$BACKUP_DIR"
+            info "Backing up existing $dest -> $BACKUP_DIR/"
+            mv -- "$dest" "$BACKUP_DIR/"
+        fi
+        ln -s -- "$src" "$dest"
+    done
 fi
 
 PACKAGES_FILE="$SCRIPT_DIR/packages.txt"
