@@ -1,0 +1,7 @@
+# Git workflow
+
+- Never commit or push directly to `main`.
+- Before making changes, create a new branch from an up-to-date `main`
+  (e.g. `git checkout main && git pull && git checkout -b <type>/<short-description>`).
+- Make all changes and commits on that branch. Push the branch if asked.
+- Do not merge the branch into `main`. The user reviews and merges it when ready.
